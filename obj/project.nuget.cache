@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "tQBSKA7q5BM=",
+  "success": true,
+  "projectFilePath": "/home/daniel/RiderProjects/LogicaServidor/LogicaServidor.csproj",
+  "expectedPackageFiles": [
+    "/home/daniel/.nuget/packages/microsoft.aspnetcore.openapi/10.0.8/microsoft.aspnetcore.openapi.10.0.8.nupkg.sha512",
+    "/home/daniel/.nuget/packages/microsoft.openapi/2.0.0/microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
