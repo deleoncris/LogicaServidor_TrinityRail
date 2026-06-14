@@ -23,7 +23,6 @@ public class SensoresController : ControllerBase
     [HttpPost("GuardarDatos")]
     public IActionResult GuardarDatos(GuardarDatosDTO guardarDatosDto)
     {
-        Console.WriteLine("Lo que sea: "+guardarDatosDto.Token);
         if (_dispositivosService.VerificarExistenciaDispositivoByToken(guardarDatosDto.Token))
         {
             DatosDTO datosDto = DatosMapper.GuardarDatosDTOToDatosDTO(guardarDatosDto);
