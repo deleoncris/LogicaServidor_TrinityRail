@@ -7,13 +7,11 @@ namespace LogicaServidor.BackgroundServices;
 
 public class InyeccionDatosPlcService : BackgroundService
 {
-    private readonly NmapService _nmapService;
-    private readonly DatosService _datosService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public InyeccionDatosPlcService(NmapService nmapService, DatosService datosService)
+    public InyeccionDatosPlcService(IServiceScopeFactory scopeFactory)
     {
-        _nmapService = nmapService;
-        _datosService = datosService;
+        _scopeFactory = scopeFactory;
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -28,8 +26,10 @@ public class InyeccionDatosPlcService : BackgroundService
     public void Test()
     {
         /*Metodo unicamente de prueba*/
+        using var scope = _scopeFactory.CreateScope();
+        var _nmapService = scope.ServiceProvider.GetRequiredService<NmapService>();
+        var _datosService = scope.ServiceProvider.GetRequiredService<DatosService>();
         EnviarDatosDTO datos = _datosService.GetDatosByNumeroSerie("001");
-        
         List<PlcDomain> lista = _nmapService.EscaneoRed();
         PlcDomain x = lista.FirstOrDefault(x=>x.Hostname == "plc-trinity-rail-001");
         if (x != null)

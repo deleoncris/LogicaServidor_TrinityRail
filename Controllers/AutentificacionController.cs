@@ -27,12 +27,13 @@ public class AutentificacionController : ControllerBase
         string token = _dispositivosService.AgregarDispositivo(numeroSerieDispositivo);
         if (!string.IsNullOrWhiteSpace(token))
         {
+            Console.WriteLine("Token: " + token);
             return Ok(token);
         }
         return BadRequest("No se pude registrar el dispositivo porque la IP o el Numero de Serie ya esta registrado");
     }
 
-    [HttpPost("RenovarAutentificacion/{token}")]
+    [HttpPost("RenovarAutentificacion")]
     public IActionResult RenovarAutentificacion(string token)
     {
         bool seRenovo = _dispositivosService.Renovar(token);
