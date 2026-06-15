@@ -1,0 +1,413 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg:        #080A10;
+    --surface:   #0E1118;
+    --surface-2: #161B26;
+    --border:    #1F2737;
+    --border-hi: #2E3D55;
+    --lime:      #B8FF3C;
+    --lime-dim:  rgba(184,255,60,0.10);
+    --lime-glow: rgba(184,255,60,0.22);
+    --text-1:    #F0F4FF;
+    --text-2:    #7A88A0;
+    --text-3:    #3A4558;
+    --danger:    #FF4F6A;
+    --r:         14px;
+    --r-sm:      8px;
+    --mono:      ui-monospace, 'Courier New', monospace;
+    --sans:      system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    --ease:      cubic-bezier(.4,0,.2,1);
+}
+
+html, body { height: 100%; }
+
+body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text-1);
+    min-height: 100vh;
+    padding: 2rem;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ── Canvas fondo ── */
+.bg-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+}
+
+.page-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ── Header ── */
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.page-header__left { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.page-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: var(--lime);
+}
+
+.page-title {
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text-1);
+    line-height: 1.1;
+}
+
+/* Indicador de guardado automático */
+.autosave {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+}
+
+.autosave__dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-3);
+    transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+}
+
+.autosave--saving .autosave__dot {
+    background: var(--lime);
+    box-shadow: 0 0 8px var(--lime);
+    animation: savePulse 0.6s ease-in-out infinite alternate;
+}
+.autosave--ok .autosave__dot {
+    background: var(--lime);
+    box-shadow: 0 0 8px var(--lime);
+}
+.autosave--error .autosave__dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.autosave--saving .autosave__text { color: var(--lime); }
+.autosave--ok .autosave__text { color: var(--lime); }
+.autosave--error .autosave__text { color: var(--danger); }
+
+@keyframes savePulse {
+     from { opacity: 1; } to { opacity: 0.3; }
+ }
+
+/* ── Grid listas + tabla ── */
+.layout {
+    display: grid;
+    grid-template-columns: 220px 220px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+/* ── Panel (lista PLC / Sensor) ── */
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.panel::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle at top right, rgba(184,255,60,0.06) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.panel__label {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    color: var(--lime);
+    text-transform: uppercase;
+}
+
+.panel__count {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    background: var(--lime-dim);
+    color: var(--lime);
+    border: 1px solid rgba(184,255,60,0.18);
+    border-radius: 99px;
+    padding: 0.1em 0.55em;
+}
+
+.panel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 60px;
+}
+
+/* ── Chip arrastrable ── */
+.chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--r-sm);
+    padding: 0.55rem 0.8rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-1);
+    cursor: grab;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.chip:active { cursor: grabbing; transform: scale(0.97); }
+
+.chip:hover {
+    border-color: var(--lime);
+    box-shadow: 0 0 0 2px var(--lime-dim);
+}
+
+.chip--plc::before {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #60A5FF;
+    flex-shrink: 0;
+}
+
+.chip--sensor::before {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--lime);
+    flex-shrink: 0;
+}
+
+.chip.dragging { opacity: 0.4; }
+
+/* ── Panel tabla ── */
+.table-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+}
+
+.table-panel__header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.table-panel__label {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    color: var(--lime);
+}
+
+.rel-count {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-3);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    padding: 0.65rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+
+tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+td {
+    padding: 0.6rem 1rem;
+    vertical-align: middle;
+}
+
+/* ── Dropzone ── */
+.dropzone {
+    min-height: 42px;
+    border: 1.5px dashed var(--border-hi);
+    border-radius: var(--r-sm);
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+}
+
+.dropzone.over {
+    border-color: var(--lime);
+    background: var(--lime-dim);
+}
+
+.dropzone__placeholder {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-3);
+}
+
+.dropzone__filled {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.dropzone__val {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-1);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.dropzone__val::before {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+[data-tipo="plc"] .dropzone__val::before  { background: #60A5FF; }
+[data-tipo="sensor"] .dropzone__val::before { background: var(--lime); }
+
+.btn-clear {
+    background: none;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 0.2rem;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+.btn-clear:hover { color: var(--danger); }
+
+/* botón eliminar fila */
+.btn-del {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    margin: auto;
+}
+.btn-del:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(255,79,106,0.08);
+}
+
+/* fila vacía (la que sirve de drop target nuevo) */
+tr.row-empty td .dropzone {
+    border-style: dashed;
+    opacity: 0.6;
+}
+
+/* ── Toast ── */
+.toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border-hi);
+    border-radius: 99px;
+    padding: 0.55rem 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--lime);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 100;
+}
+.toast.show { opacity: 1; transform: none; }
+.toast--error { border-color: var(--danger); color: var(--danger); }
+
+.toast__dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr 1fr; }
+    .table-panel { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+    body { padding: 1rem; }
+    .layout { grid-template-columns: 1fr; }
+    .page-title { font-size: 1.4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .autosave__dot { animation: none; }
+}
