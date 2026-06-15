@@ -1,0 +1,738 @@
+@model LogicaServidor.Areas.Admin.Models.IndexViewModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relaciones PLC ↔ Sensor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080A10;
+      --surface:   #0E1118;
+      --surface-2: #161B26;
+      --border:    #1F2737;
+      --border-hi: #2E3D55;
+      --lime:      #B8FF3C;
+      --lime-dim:  rgba(184,255,60,0.10);
+      --lime-glow: rgba(184,255,60,0.22);
+      --text-1:    #F0F4FF;
+      --text-2:    #7A88A0;
+      --text-3:    #3A4558;
+      --danger:    #FF4F6A;
+      --r:         16px;
+      --r-sm:      10px;
+      --mono:      ui-monospace, 'Courier New', monospace;
+      --sans:      system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+      --ease:      cubic-bezier(.4,0,.2,1);
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Canvas fondo ── */
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .page-header__left { display: flex; align-items: flex-start; gap: 1rem; }
+
+    .header-icon {
+      width: 48px; height: 48px;
+      background: var(--lime-dim);
+      border: 1px solid rgba(184,255,60,0.18);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--lime);
+      flex-shrink: 0;
+      animation: iconGlow 3s ease-in-out infinite;
+    }
+    .header-icon svg { width: 24px; height: 24px; }
+
+    @@keyframes iconGlow {
+      0%,100% { box-shadow: none; }
+      50%      { box-shadow: 0 0 18px rgba(184,255,60,0.25); }
+    }
+
+    .header-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      color: var(--lime);
+      margin-bottom: 0.3rem;
+    }
+
+    .header-title {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    /* ── Indicador de guardado ── */
+    .save-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 0.45rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      transition: color 0.3s, border-color 0.3s;
+      align-self: flex-start;
+      margin-top: 6px;
+      white-space: nowrap;
+    }
+
+    .save-status__dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-3);
+      transition: background 0.3s, box-shadow 0.3s;
+      flex-shrink: 0;
+    }
+
+    .save-status.saving .save-status__dot {
+      background: var(--lime);
+      box-shadow: 0 0 8px var(--lime);
+      animation: dotPulse 0.8s ease-in-out infinite;
+    }
+    .save-status.saving { color: var(--lime); border-color: rgba(184,255,60,0.3); }
+
+    .save-status.saved .save-status__dot { background: var(--lime); }
+    .save-status.saved { color: var(--lime); border-color: rgba(184,255,60,0.3); }
+
+    .save-status.error .save-status__dot { background: var(--danger); }
+    .save-status.error { color: var(--danger); border-color: rgba(255,79,106,0.3); }
+
+    @@keyframes dotPulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ── Countdown bar ── */
+    .countdown-wrap {
+      height: 2px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .countdown-bar {
+      height: 100%;
+      background: var(--lime);
+      border-radius: 99px;
+      width: 100%;
+      transform-origin: left;
+      transition: none;
+    }
+
+    /* ── Layout de columnas + tabla ── */
+    .workspace {
+      display: grid;
+      grid-template-columns: 200px 200px 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    /* ── Tarjeta base ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.25rem;
+      box-shadow: 0 0 0 1px rgba(184,255,60,0.03), 0 16px 40px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      background: radial-gradient(circle at top right, rgba(184,255,60,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Listas PLC / Sensor ── */
+    .list-card__title {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--lime);
+      margin-bottom: 0.85rem;
+      text-transform: uppercase;
+    }
+
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      min-height: 60px;
+    }
+
+    .drag-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--r-sm);
+      padding: 0.55rem 0.75rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-1);
+      cursor: grab;
+      user-select: none;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .drag-item::before {
+      content: '⠿';
+      color: var(--text-3);
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .drag-item:hover {
+      border-color: rgba(184,255,60,0.35);
+      box-shadow: 0 0 0 1px rgba(184,255,60,0.12);
+      transform: translateX(2px);
+    }
+
+    .drag-item:active { cursor: grabbing; transform: scale(0.97); }
+
+    .drag-item--plc    { border-left: 2px solid rgba(184,255,60,0.5); }
+    .drag-item--sensor { border-left: 2px solid rgba(0,198,255,0.5); }
+
+    /* ── Tabla de relaciones ── */
+    .table-card { padding: 0; }
+
+    .rel-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .rel-table thead tr {
+      border-bottom: 1px solid var(--border-hi);
+    }
+
+    .rel-table th {
+      padding: 0.85rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .rel-table th:last-child { width: 48px; text-align: center; }
+
+    .rel-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .rel-table tbody tr:last-child { border-bottom: none; }
+    .rel-table tbody tr:hover { background: rgba(255,255,255,0.015); }
+
+    .rel-table td { padding: 0.6rem 1rem; vertical-align: middle; }
+
+    /* Dropzone dentro de celda */
+    .dropzone {
+      min-height: 40px;
+      border-radius: var(--r-sm);
+      display: flex;
+      align-items: center;
+      transition: background 0.2s, box-shadow 0.2s;
+      padding: 0.25rem 0.5rem;
+    }
+
+    .dropzone.drag-over {
+      background: var(--lime-dim);
+      box-shadow: inset 0 0 0 1px rgba(184,255,60,0.3);
+    }
+
+    .dropzone__placeholder {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--text-3);
+      letter-spacing: 0.05em;
+    }
+
+    .dropzone__chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: 6px;
+      padding: 0.35rem 0.65rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-1);
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .dropzone__chip--plc    { border-left: 2px solid rgba(184,255,60,0.6); }
+    .dropzone__chip--sensor { border-left: 2px solid rgba(0,198,255,0.6); }
+
+    .chip-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-3);
+      font-size: 0.75rem;
+      padding: 0 2px;
+      line-height: 1;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+    .chip-remove:hover { color: var(--danger); }
+
+    /* Botón eliminar fila */
+    .btn-row-del {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-3);
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto;
+      font-size: 0.85rem;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .btn-row-del:hover {
+      color: var(--danger);
+      border-color: rgba(255,79,106,0.3);
+      background: rgba(255,79,106,0.07);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-hi) 30%, var(--border-hi) 70%, transparent);
+    }
+
+    /* ── Responsive ── */
+    @@media (max-width: 860px) {
+      .workspace {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+      }
+      .table-card { grid-column: 1 / -1; }
+    }
+
+    @@media (max-width: 520px) {
+      .workspace { grid-template-columns: 1fr; }
+      .table-card { grid-column: 1; }
+      body { padding: 1rem; }
+      .header-title { font-size: 1.3rem; }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+      .header-icon, .save-status.saving .save-status__dot { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
+
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="page-header__left">
+      <div class="header-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="7" width="6" height="10" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+          <rect x="16" y="7" width="6" height="10" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M8 10h4M8 14h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M12 10h4M12 14h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <span class="header-label">PANEL DE ADMINISTRACIÓN</span>
+        <h1 class="header-title">Relaciones PLC ↔ Sensor</h1>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end;">
+      <div class="save-status" id="saveStatus">
+        <span class="save-status__dot"></span>
+        <span class="save-status__text" id="saveText">Guardado automático en <span id="countdown">10</span>s</span>
+      </div>
+      <div class="countdown-wrap" style="width:200px;">
+        <div class="countdown-bar" id="countdownBar"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <!-- Workspace -->
+  <div class="workspace">
+
+    <!-- Lista PLCs -->
+    <div class="card list-card">
+      <p class="list-card__title">PLCs disponibles</p>
+      <div class="item-list" id="listaPlc"></div>
+    </div>
+
+    <!-- Lista Sensores -->
+    <div class="card list-card">
+      <p class="list-card__title">Sensores disponibles</p>
+      <div class="item-list" id="listaSensor"></div>
+    </div>
+
+    <!-- Tabla de relaciones -->
+    <div class="card table-card">
+      <table class="rel-table">
+        <thead>
+          <tr>
+            <th>PLC</th>
+            <th>Sensor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Datos del modelo Razor serializados para JS -->
+<script id="modelData" type="application/json">
+{
+  "plcs":        @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Plcs)),
+  "dispositivos":@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dispositivos)),
+  "relaciones":  @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Relaciones.Select(r => new { plc = r.Item1, sensor = r.Item2 })))
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── Canvas partículas ── */
+  const canvas = document.getElementById("bgCanvas");
+  const ctx    = canvas.getContext("2d");
+  let W, H, particles = [];
+  function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+  function mkP() { return { x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.1+0.3, vx:(Math.random()-.5)*.22, vy:(Math.random()-.5)*.22, a:Math.random()*.45+0.1 }; }
+  function initP(n=70){ particles = Array.from({length:n},mkP); }
+  function drawP() {
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`rgba(184,255,60,${p.a})`; ctx.fill(); });
+    requestAnimationFrame(drawP);
+  }
+  resize(); initP(); drawP();
+  window.addEventListener("resize",()=>{ resize(); initP(); });
+
+  /* ── Datos del modelo ── */
+  const modelRaw  = JSON.parse(document.getElementById("modelData").textContent);
+  let plcs        = modelRaw.plcs        || [];
+  let dispositivos= modelRaw.dispositivos|| [];
+  let relaciones  = modelRaw.relaciones  || [];
+
+  /* ── Estado drag ── */
+  let dragged = null;
+
+  /* ── Helpers de UI ── */
+  function crearDragItem(label, tipo) {
+    const el = document.createElement("div");
+    el.className = `drag-item drag-item--${tipo}`;
+    el.draggable = true;
+    el.dataset.tipo  = tipo;
+    el.dataset.valor = label;
+    el.textContent   = label;
+    el.addEventListener("dragstart", () => { dragged = el; el.style.opacity = "0.4"; });
+    el.addEventListener("dragend",   () => { el.style.opacity = ""; dragged = null; });
+    return el;
+  }
+
+  function devolverALista(zona) {
+    const valor = zona.dataset.valor;
+    if (!valor) return;
+    const tipo = zona.dataset.tipo;
+    const dest = tipo === "plc"
+      ? document.getElementById("listaPlc")
+      : document.getElementById("listaSensor");
+    dest.appendChild(crearDragItem(valor, tipo));
+    zona.dataset.valor = "";
+    renderZonaVacia(zona);
+  }
+
+  function renderZonaVacia(zona) {
+    const tipo = zona.dataset.tipo;
+    zona.innerHTML = `<span class="dropzone__placeholder">Arrastra ${tipo === "plc" ? "PLC" : "Sensor"}</span>`;
+  }
+
+  function renderZonaConValor(zona, valor) {
+    const tipo = zona.dataset.tipo;
+    zona.dataset.valor = valor;
+    zona.innerHTML = `
+      <div class="dropzone__chip dropzone__chip--${tipo}">
+        <span>${valor}</span>
+        <button type="button" class="chip-remove" title="Quitar">✕</button>
+      </div>`;
+    zona.querySelector(".chip-remove").addEventListener("click", ev => {
+      ev.stopPropagation();
+      devolverALista(zona);
+      asegurarFilaVacia();
+    });
+  }
+
+  function activarDropzone(zona) {
+    zona.addEventListener("dragover", e => {
+      if (dragged && dragged.dataset.tipo === zona.dataset.tipo) {
+        e.preventDefault();
+        zona.classList.add("drag-over");
+      }
+    });
+    zona.addEventListener("dragleave", () => zona.classList.remove("drag-over"));
+    zona.addEventListener("drop", e => {
+      e.preventDefault();
+      zona.classList.remove("drag-over");
+      if (!dragged || dragged.dataset.tipo !== zona.dataset.tipo) return;
+      devolverALista(zona);           // devolver el que había antes
+      renderZonaConValor(zona, dragged.dataset.valor);
+      dragged.remove();
+      asegurarFilaVacia();
+    });
+  }
+
+  function crearFila(plcValor = "", sensorValor = "") {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><div class="dropzone" data-tipo="plc"></div></td>
+      <td><div class="dropzone" data-tipo="sensor"></div></td>
+      <td>
+        <button type="button" class="btn-row-del" title="Eliminar fila">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </td>`;
+
+    const zonaPlc    = tr.querySelector('[data-tipo="plc"]');
+    const zonaSensor = tr.querySelector('[data-tipo="sensor"]');
+
+    renderZonaVacia(zonaPlc);
+    renderZonaVacia(zonaSensor);
+    activarDropzone(zonaPlc);
+    activarDropzone(zonaSensor);
+
+    if (plcValor)    renderZonaConValor(zonaPlc,    plcValor);
+    if (sensorValor) renderZonaConValor(zonaSensor, sensorValor);
+
+    tr.querySelector(".btn-row-del").addEventListener("click", () => {
+      devolverALista(zonaPlc);
+      devolverALista(zonaSensor);
+      tr.remove();
+      asegurarFilaVacia();
+    });
+
+    return tr;
+  }
+
+  function asegurarFilaVacia() {
+    const tabla  = document.getElementById("tabla");
+    const filas  = [...tabla.querySelectorAll("tr")];
+    const vacias = filas.filter(tr => {
+      const p = tr.querySelector('[data-tipo="plc"]').dataset.valor   || "";
+      const s = tr.querySelector('[data-tipo="sensor"]').dataset.valor || "";
+      return !p && !s;
+    });
+    while (vacias.length > 1) vacias.pop().remove();
+    if (vacias.length === 0) tabla.appendChild(crearFila());
+  }
+
+  /* ── Etiquetas de display ── */
+  function plcLabel(plc) {
+    return plc.hostname ? `${plc.hostname} (${plc.ip})` : plc.ip;
+  }
+  function sensorLabel(d) {
+    return d.numeroSerie;
+  }
+
+  /* ── Carga inicial ── */
+  function cargarDatos(plcsData, dispositivosData, relacionesData) {
+    const listaPlc    = document.getElementById("listaPlc");
+    const listaSensor = document.getElementById("listaSensor");
+    const tabla       = document.getElementById("tabla");
+
+    listaPlc.innerHTML    = "";
+    listaSensor.innerHTML = "";
+    tabla.innerHTML       = "";
+
+    // Qué ya está en relaciones
+    const plcsEnUso    = new Set(relacionesData.map(r => r.plc?.ip || r.plc));
+    const sensoresEnUso= new Set(relacionesData.map(r => r.sensor?.numeroSerie || r.sensor));
+
+    // Listas libres
+    plcsData.forEach(plc => {
+      if (!plcsEnUso.has(plc.ip))
+        listaPlc.appendChild(crearDragItem(plcLabel(plc), "plc"));
+    });
+    dispositivosData.forEach(d => {
+      if (!sensoresEnUso.has(d.numeroSerie))
+        listaSensor.appendChild(crearDragItem(sensorLabel(d), "sensor"));
+    });
+
+    // Filas con relaciones existentes
+    relacionesData.forEach(r => {
+      const pLabel = plcLabel(r.plc);
+      const sLabel = sensorLabel(r.sensor);
+      tabla.appendChild(crearFila(pLabel, sLabel));
+    });
+
+    asegurarFilaVacia();
+  }
+
+  cargarDatos(plcs, dispositivos, relaciones);
+
+  /* ── Leer relaciones actuales de la tabla ── */
+  function leerRelaciones() {
+    const tabla = document.getElementById("tabla");
+    const result = [];
+    tabla.querySelectorAll("tr").forEach(tr => {
+      const p = tr.querySelector('[data-tipo="plc"]').dataset.valor    || "";
+      const s = tr.querySelector('[data-tipo="sensor"]').dataset.valor || "";
+      if (p && s) result.push({ plc: p, sensor: s });
+    });
+    return result;
+  }
+
+  /* ── Guardar ── */
+  async function guardarRelaciones() {
+    const status  = document.getElementById("saveStatus");
+    const saveText= document.getElementById("saveText");
+    status.className = "save-status saving";
+    saveText.textContent = "Guardando…";
+    try {
+      const body = leerRelaciones();
+      const res  = await fetch("/Admin/Relation/GuardarRelacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error("Error " + res.status);
+      status.className = "save-status saved";
+      saveText.textContent = "Guardado correctamente";
+      setTimeout(() => iniciarCuentaRegresiva(), 1500);
+    } catch (err) {
+      status.className = "save-status error";
+      saveText.textContent = "Error al guardar";
+      setTimeout(() => iniciarCuentaRegresiva(), 2000);
+    }
+  }
+
+  /* ── Countdown 10 s ── */
+  const INTERVALO = 10;
+  let timer = null;
+  let barAnim = null;
+
+  function iniciarCuentaRegresiva() {
+    clearTimeout(timer);
+    cancelAnimationFrame(barAnim);
+
+    const status   = document.getElementById("saveStatus");
+    const saveText = document.getElementById("saveText");
+    const countEl  = document.getElementById("countdown");
+    const bar      = document.getElementById("countdownBar");
+
+    status.className = "save-status";
+    saveText.innerHTML = `Guardado automático en <span id="countdown">${INTERVALO}</span>s`;
+
+    const startTime = performance.now();
+    const duration  = INTERVALO * 1000;
+
+    function animBar(now) {
+      const elapsed = now - startTime;
+      const pct     = Math.max(0, 1 - elapsed / duration);
+      bar.style.width = (pct * 100) + "%";
+      const seg = Math.ceil((duration - elapsed) / 1000);
+      const cdEl = document.getElementById("countdown");
+      if (cdEl) cdEl.textContent = Math.max(0, seg);
+      if (elapsed < duration) {
+        barAnim = requestAnimationFrame(animBar);
+      }
+    }
+    barAnim = requestAnimationFrame(animBar);
+
+    timer = setTimeout(() => {
+      cancelAnimationFrame(barAnim);
+      bar.style.width = "0%";
+      guardarRelaciones();
+    }, duration);
+  }
+
+  /* ── Actualizar datos desde servidor cada 10s (sin pisar la tabla) ── */
+  async function actualizarDatos() {
+    try {
+      const res  = await fetch("/Admin/Relation/ObtenerEstado");
+      const data = await res.json();
+      // Solo actualizamos si no hay nada en las listas (evita conflictos con el usuario)
+      // El guardado se encarga de la persistencia; aquí solo sincronizamos nuevos dispositivos
+      plcs         = data.plcs         || plcs;
+      dispositivos = data.dispositivos || dispositivos;
+    } catch (_) {}
+  }
+
+  setInterval(actualizarDatos, 10000);
+  iniciarCuentaRegresiva();
+
+})();
+</script>
+</body>
+</html>
