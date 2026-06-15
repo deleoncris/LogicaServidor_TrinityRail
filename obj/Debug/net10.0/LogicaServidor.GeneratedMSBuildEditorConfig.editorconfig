@@ -30,3 +30,11 @@ build_property.MSBuildProjectDirectory = /home/daniel/RiderProjects/LogicaServid
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
+
+[/home/daniel/RiderProjects/LogicaServidor/Areas/Admin/Views/Account/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvQWRtaW4vVmlld3MvQWNjb3VudC9Mb2dpbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/home/daniel/RiderProjects/LogicaServidor/Areas/Admin/Views/Relation/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvQWRtaW4vVmlld3MvUmVsYXRpb24vSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 

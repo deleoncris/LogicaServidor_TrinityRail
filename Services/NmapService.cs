@@ -6,14 +6,22 @@ namespace LogicaServidor.Services;
 
 public class NmapService
 {
-    public List<Plc> EscaneoRed()
+    private List<Plc> Plcs { get; set; } = [];
+
+    public List<Plc> GetListaPlcs()
+    {
+        return Plcs;
+    }
+
+    public void EscaneoRed()
     {
         using var processRed = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = "-c \"ip -4 route show scope link | awk '{print $1}'\"",
+                Arguments =
+                    "-c \"ipcalc $(ip -o -f inet addr show wlan0 | awk '{print $4}') | awk '/Network:/ {print $2}'\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -58,7 +66,7 @@ public class NmapService
             @"Nmap scan report for (?:(?<hostname>.+?) \((?<ip>\d+\.\d+\.\d+\.\d+)\)|(?<iponly>\d+\.\d+\.\d+\.\d+))",
             RegexOptions.Multiline);
 
-        return regex.Matches(output)
+        Plcs = regex.Matches(output)
             .Select(m => new Plc
             {
                 Ip = m.Groups["ip"].Success
@@ -69,6 +77,7 @@ public class NmapService
                     ? m.Groups["hostname"].Value
                     : string.Empty
             })
+            .Where(plc => plc.Hostname.StartsWith("plc-tr-", StringComparison.OrdinalIgnoreCase))
             .ToList();
     }
 }

@@ -30,7 +30,7 @@ public class InyeccionDatosPlcService : BackgroundService
         var _nmapService = scope.ServiceProvider.GetRequiredService<NmapService>();
         var _datosService = scope.ServiceProvider.GetRequiredService<DatosService>();
         EnviarDatosDTO datos = _datosService.GetDatosByNumeroSerie("001");
-        List<PlcDomain> lista = _nmapService.EscaneoRed();
+        List<PlcDomain> lista = _nmapService.GetListaPlcs();
         PlcDomain x = lista.FirstOrDefault(x=>x.Hostname == "plc-trinity-rail-001");
         if (x != null)
         {

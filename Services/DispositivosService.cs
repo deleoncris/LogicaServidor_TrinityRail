@@ -26,6 +26,11 @@ public class DispositivosService
         }
         return "";
     }
+
+    public List<Dispositivo> GetListaDispositivos()
+    {
+        return ListaDispositivos;
+    }
     public bool VerificarExistenciaDispositivoByToken(string token)
     {
         return ListaDispositivos.Any(x=> x.Token == token);
@@ -55,7 +60,6 @@ public class DispositivosService
             ListaDispositivos.Remove(dispositivo);
         }
     }
-
     public string GetNumeroSerieByToken(string token)
     {
         return ListaDispositivos.FirstOrDefault(x => x.Token == token)!.NumeroSerie;
