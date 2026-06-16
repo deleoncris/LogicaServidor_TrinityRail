@@ -246,3 +246,4 @@
 /home/daniel/RiderProjects/LogicaServidor/bin/Debug/net10.0/LogicaServidor.staticwebassets.runtime.json
 /home/daniel/RiderProjects/LogicaServidor/obj/Debug/net10.0/compressed/5audypqbz0-{0}-uxqd4hkdwb-uxqd4hkdwb.gz
 /home/daniel/RiderProjects/LogicaServidor/obj/Debug/net10.0/compressed/2h0qmk5r8t-{0}-pnrz77dqm9-pnrz77dqm9.gz
+/home/daniel/RiderProjects/LogicaServidor/obj/Debug/net10.0/compressed/vvdw5n2r9a-{0}-r77odch33b-r77odch33b.gz

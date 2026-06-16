@@ -7,10 +7,12 @@ using LogicaServidor.Services;
 using LogicaServidor.Validators;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using MySqlConnector;
 
+/*Esta shit necesita realmente optimizacion del flujo de all, se ve horrible */
 bool IsCommandInstalled(string command)
 {
     var process = new Process
@@ -115,6 +117,72 @@ void Verification_nmap()
         AskForToInstallPackage("nmap");
     }
 }
+bool IsPortOpen()
+{
+    try
+    {
+        using var client = new TcpClient();
+        var result = client.BeginConnect("127.0.0.1", 3306, null, null);
+        bool success = result.AsyncWaitHandle.WaitOne(1500);
+        if (!success) return false;
+
+        client.EndConnect(result);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+bool CanConnectDatabase()
+{
+    try
+    {
+        var connStr = $"Server=127.0.0.1;Port=3306;User ID=dbeaver;Password=root;";
+        using var conn = new MySqlConnection(connStr);
+        conn.Open();
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+void InstallAndStartMariaDB()
+{
+    RunShell("apt update");
+    RunShell("apt install mariadb-server -y");
+    RunShell("systemctl enable mariadb");
+    RunShell("systemctl start mariadb");
+}
+void SetupDatabaseUser()
+{
+    string sql = "CREATE USER IF NOT EXISTS 'dbeaver'@'localhost' IDENTIFIED BY 'root'; " +
+                 "GRANT ALL PRIVILEGES ON *.* TO 'dbeaver'@'localhost' WITH GRANT OPTION; " +
+                 "FLUSH PRIVILEGES;";
+
+    string cmd = $"mysql -e \"{sql}\"";
+    RunShell(cmd);
+}
+void RunShell(string command)
+{
+    var process = new Process();
+    process.StartInfo.FileName = "/bin/bash";
+    process.StartInfo.Arguments = $"-c \"{command}\"";
+    process.StartInfo.RedirectStandardOutput = true;
+    process.StartInfo.RedirectStandardError = true;
+    process.StartInfo.UseShellExecute = false;
+    process.StartInfo.CreateNoWindow = true;
+
+    process.Start();
+    string output = process.StandardOutput.ReadToEnd();
+    string error = process.StandardError.ReadToEnd();
+    process.WaitForExit();
+
+    Console.WriteLine(output);
+    if (!string.IsNullOrEmpty(error))
+        Console.WriteLine("ERROR: " + error);
+}
 void API()
 {
     var builder = WebApplication.CreateBuilder(args);
@@ -154,6 +222,12 @@ void API()
         });
     builder.Services.AddAuthorization();
     var app = builder.Build();
+    /*Crea bd en caso de no existir*/
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SensoresTrinityContext>();
+        db.Database.EnsureCreated();
+    }
     app.UseStaticFiles();
     app.UseAuthentication();
     app.UseAuthorization();
@@ -169,8 +243,29 @@ void API()
 
     app.Run();
 }
-
-if (OperatingSystem.IsLinux())
+void VerificarExistenciaUsuario()
+{
+    if (!CanConnectDatabase())
+    {
+        string r = "";
+        while (!(r.ToLower() == "s" || r.ToLower() == "n"))
+        {
+            Console.WriteLine("Se requiere de un usuario especial en MariaDB\n¿Deseas crear al usuario 'dbeaver' con contraseña 'root'? n/s");
+            r = Console.ReadLine();
+        }
+        if (r.ToLower() == "s")
+        {
+            Console.Clear();
+            SetupDatabaseUser();
+            VerificacionModoPrivilegiado();
+        }
+    }
+    else
+    {
+        VerificacionModoPrivilegiado();
+    }
+}
+void VerificacionModoPrivilegiado()
 {
     [DllImport("libc")]
     static extern uint geteuid();
@@ -181,6 +276,28 @@ if (OperatingSystem.IsLinux())
     else
     {
         Console.WriteLine("Este programa esta diseñado para ejecutarse como usuario privilegiado");
+    }
+}
+if (OperatingSystem.IsLinux())
+{
+    if (!IsPortOpen())
+    {
+        string r = "";
+        while (!(r.ToLower() == "s" || r.ToLower() == "n"))
+        {
+            Console.WriteLine("Este programa esta diseñado para ser ejecutado junto con MariaDB en el puerto 3306\n¿Deseas Instalar MariaDB? n/s");
+            r = Console.ReadLine();
+        }
+        if (r.ToLower() == "s")
+        {
+            Console.Clear();
+            InstallAndStartMariaDB();
+            VerificarExistenciaUsuario();
+        }
+    }
+    else
+    {
+        VerificarExistenciaUsuario();
     }
 }
 else

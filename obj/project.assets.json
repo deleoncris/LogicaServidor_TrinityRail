@@ -1623,15 +1623,15 @@
           "buildTransitive/Mono.TextTemplating.targets": {}
         }
       },
-      "MySqlConnector/2.4.0": {
+      "MySqlConnector/2.6.0": {
         "type": "package",
         "compile": {
-          "lib/net9.0/MySqlConnector.dll": {
+          "lib/net10.0/MySqlConnector.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net9.0/MySqlConnector.dll": {
+          "lib/net10.0/MySqlConnector.dll": {
             "related": ".xml"
           }
         }
@@ -4722,14 +4722,16 @@
         "readme.md"
       ]
     },
-    "MySqlConnector/2.4.0": {
-      "sha512": "78M+gVOjbdZEDIyXQqcA7EYlCGS3tpbUELHvn6638A2w0pkPI625ixnzsa5staAd3N9/xFmPJtkKDYwsXpFi/w==",
+    "MySqlConnector/2.6.0": {
+      "sha512": "YLceXhrEznpXf8XkwvH6JWHjAq0AA2lsf/zYWiESe4B9ki2v473XH2GRcPbLwktBqYu1Uy3Dvs7G+mu48QKL2w==",
       "type": "package",
-      "path": "mysqlconnector/2.4.0",
+      "path": "mysqlconnector/2.6.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
+        "lib/net10.0/MySqlConnector.dll",
+        "lib/net10.0/MySqlConnector.xml",
         "lib/net462/MySqlConnector.dll",
         "lib/net462/MySqlConnector.xml",
         "lib/net471/MySqlConnector.dll",
@@ -4747,7 +4749,7 @@
         "lib/netstandard2.1/MySqlConnector.dll",
         "lib/netstandard2.1/MySqlConnector.xml",
         "logo.png",
-        "mysqlconnector.2.4.0.nupkg.sha512",
+        "mysqlconnector.2.6.0.nupkg.sha512",
         "mysqlconnector.nuspec"
       ]
     },
@@ -5300,6 +5302,7 @@
       "Microsoft.EntityFrameworkCore >= 9.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 9.0.0",
       "Microsoft.VisualStudio.Web.CodeGeneration.Design >= 9.0.0",
+      "MySqlConnector >= 2.6.0",
       "Pomelo.EntityFrameworkCore.MySql >= 9.0.0",
       "S7netplus >= 0.20.0"
     ]
@@ -5370,6 +5373,10 @@
             "target": "Package",
             "version": "[9.0.0, )"
           },
+          "MySqlConnector": {
+            "target": "Package",
+            "version": "[2.6.0, )"
+          },
           "Pomelo.EntityFrameworkCore.MySql": {
             "target": "Package",
             "version": "[9.0.0, )"
@@ -5398,7 +5405,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.300/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.301/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

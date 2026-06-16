@@ -18,26 +18,24 @@ public class InyeccionDatosPlcService : BackgroundService
         await Task.Delay(TimeSpan.FromSeconds(1));
         while (!stoppingToken.IsCancellationRequested)
         {
-            Test();
+            InyeccionDatos();
             await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
         }
     }
 
-    public void Test()
+    public void InyeccionDatos()
     {
-        /*Metodo unicamente de prueba*/
         using var scope = _scopeFactory.CreateScope();
-        var _nmapService = scope.ServiceProvider.GetRequiredService<NmapService>();
         var _datosService = scope.ServiceProvider.GetRequiredService<DatosService>();
-        EnviarDatosDTO datos = _datosService.GetDatosByNumeroSerie("001");
-        List<PlcDomain> lista = _nmapService.GetListaPlcs();
-        PlcDomain x = lista.FirstOrDefault(x=>x.Hostname == "plc-trinity-rail-001");
-        if (x != null)
+        var _relacionesService = scope.ServiceProvider.GetRequiredService<RelacionPlcAndSensorService>();
+        var relaciones = _relacionesService.GetRelaciones();
+        foreach (var relacion in relaciones)
         {
-            if (datos.FechaMuestra.AddMinutes(1) > DateTime.Now)
+            EnviarDatosDTO datos = _datosService.GetDatosByNumeroSerie(relacion.Item2.NumeroSerie);
+            PlcDomain x = relacion.Item1;
+            if (datos.FechaMuestra.AddSeconds(10) > DateTime.Now)
             {
                 var plc = new Plc(CpuType.S71200, x.Ip, 0, 1);
-                    
                 plc.Open();
                 plc.Write("DB10.DBW0", datos.Co2);
                 plc.Write("DB10.DBW2", datos.Temperatura);

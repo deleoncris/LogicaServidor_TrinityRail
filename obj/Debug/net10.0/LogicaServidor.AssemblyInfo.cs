@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LogicaServidor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+83e94c7c46b0e7813d0823403479fe4da1334eb8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f6a006814afd68fc31775300cc3960d7c94159d2")]
 [assembly: System.Reflection.AssemblyProductAttribute("LogicaServidor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LogicaServidor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

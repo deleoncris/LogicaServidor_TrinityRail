@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "O3cPkv5aVgE=",
+  "dgSpecHash": "MGKA38O07zI=",
   "success": true,
   "projectFilePath": "/home/daniel/RiderProjects/LogicaServidor/LogicaServidor.csproj",
   "expectedPackageFiles": [
@@ -91,7 +91,7 @@
     "/home/daniel/.nuget/packages/microsoft.visualstudio.web.codegeneration.utils/9.0.0/microsoft.visualstudio.web.codegeneration.utils.9.0.0.nupkg.sha512",
     "/home/daniel/.nuget/packages/microsoft.visualstudio.web.codegenerators.mvc/9.0.0/microsoft.visualstudio.web.codegenerators.mvc.9.0.0.nupkg.sha512",
     "/home/daniel/.nuget/packages/mono.texttemplating/3.0.0/mono.texttemplating.3.0.0.nupkg.sha512",
-    "/home/daniel/.nuget/packages/mysqlconnector/2.4.0/mysqlconnector.2.4.0.nupkg.sha512",
+    "/home/daniel/.nuget/packages/mysqlconnector/2.6.0/mysqlconnector.2.6.0.nupkg.sha512",
     "/home/daniel/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
     "/home/daniel/.nuget/packages/nuget.common/6.11.0/nuget.common.6.11.0.nupkg.sha512",
     "/home/daniel/.nuget/packages/nuget.configuration/6.11.0/nuget.configuration.6.11.0.nupkg.sha512",
