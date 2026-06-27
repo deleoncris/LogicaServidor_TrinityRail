@@ -21,7 +21,7 @@ public class NmapService
             {
                 FileName = "/bin/bash",
                 Arguments =
-                    "-c \"ipcalc $(ip -o -f inet addr show wlan0 | awk '{print $4}') | awk '/Network:/ {print $2}'\"",
+                    "-c \"ipcalc-ng $(ip -o -f inet addr show eth0 | gawk '{print $4}') | gawk '/Network:/ {print $2}'\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,

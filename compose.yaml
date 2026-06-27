@@ -1,0 +1,27 @@
+﻿services:
+  logicaservidor:
+    image: logicaservidor
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+  mariadb:
+    image: mariadb
+    healthcheck:
+      test: [ "CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -proot" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "3307:3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=root
+      - MARIADB_USER=dbeaver
+      - MARIADB_PASSWORD=root
+      - MARIADB_DATABASE=SensoresTrinity
+    volumes:
+      - baseDatos:/var/lib/mysql
+volumes:
+  baseDatos:
